@@ -38,6 +38,7 @@
 #include "image.h"
 #include "model.h"
 #include "mpu.h"
+#include "powerctl/pmic.h"
 #include "prodtest_common.h"
 #include "random_delays.h"
 #include "rsod.h"
@@ -777,6 +778,133 @@ void cpuid_read(void) {
   vcp_println_hex((uint8_t *)cpuid, sizeof(cpuid));
 }
 
+void test_pmic(const char *args) {
+  if (strcmp(args, "INIT") == 0) {
+    pmic_deinit();
+    bool ok = pmic_init();
+    if (ok) {
+      vcp_println("OK");
+    } else {
+      vcp_println("ERROR # I/O error");
+    }
+  } else if (strcmp(args, "CHGSTART") == 0) {
+    bool ok = pmic_charge_enable(true);
+    if (ok) {
+      vcp_println("OK # Charging started with %dmA current limit",
+                  pmic_get_charge_limit());
+    } else {
+      vcp_println("ERROR");
+    }
+  } else if (strcmp(args, "CHGSTOP") == 0) {
+    bool ok = pmic_charge_enable(false);
+    if (ok) {
+      vcp_println("OK # Charging stopped");
+    } else {
+      vcp_println("ERROR # I/O error");
+    }
+  } else if (strncmp(args, "CHGLIMIT", 8) == 0) {
+    int i_charge = atoi(&args[8]);
+    if (i_charge < 32 || i_charge > 180) {
+      vcp_println("ERROR # Out of range");
+      return;
+    } else {
+      bool ok = pmic_set_charge_limit(i_charge);
+      if (ok) {
+        vcp_println("OK # %dmA current limit", pmic_get_charge_limit());
+      } else {
+        vcp_println("ERROR # I/O error");
+      }
+    }
+  } else if (strncmp(args, "MEASURE", 7) == 0) {
+    int seconds = atoi(&args[7]);
+    uint32_t ticks = hal_ticks_ms();
+    vcp_println(
+        "time; vbat; ibat; ntc_temp; vsys; die_temp; iba_meas_status; mode");
+    do {
+      pmic_measure_trigger();
+      hal_delay(700);
+      pmic_report_t report;
+      bool ok = pmic_measure(&report);
+      if (!ok) {
+        vcp_println("ERROR # I/O error");
+        break;
+      }
+
+      vcp_print("%09d; ", ticks);
+      vcp_print("%d.%03d; ", (int)report.vbat,
+                (int)(report.vbat * 1000) % 1000);
+      vcp_print("%d.%03d; ", (int)report.ibat,
+                (int)abs(report.ibat * 1000) % 1000);
+      vcp_print("%d.%03d; ", (int)report.ntc_temp,
+                (int)abs(report.ntc_temp * 1000) % 1000);
+      vcp_print("%d.%03d; ", (int)report.vsys,
+                (int)(report.vsys * 1000) % 1000);
+      vcp_print("%d.%03d; ", (int)report.die_temp,
+                (int)abs(report.die_temp * 1000) % 1000);
+      vcp_print("%02X; ", report.ibat_meas_status);
+
+      bool ibat_discharging = ((report.ibat_meas_status >> 2) & 0x03) == 1;
+      bool ibat_charging = ((report.ibat_meas_status >> 2) & 0x03) == 3;
+
+      if (ibat_discharging) {
+        vcp_print("DISCHARGING");
+      } else if (ibat_charging) {
+        vcp_print("CHARGING");
+      } else {
+        vcp_print("IDLE");
+      }
+
+      vcp_println("");
+
+      while (!ticks_expired(ticks + 1000)) {
+      };
+
+      ticks += 1000;
+
+    } while (seconds-- > 0);
+
+    vcp_println("OK # Measurement finished");
+
+  } else if (strcmp(args, "STATUS") == 0) {
+    uint8_t rc = pmic_restart_cause();
+    vcp_println("restart_cause() -> %02X", rc);
+
+    pmic_measure_trigger();
+
+    hal_delay(1500);
+
+    pmic_report_t report;
+    bool ok = pmic_measure(&report);
+    vcp_println("pmic_measure() -> %d", ok);
+    vcp_println("vbat=%d.%02d", (int)report.vbat,
+                (int)(report.vbat * 100) % 100);
+    vcp_println("vsys=%d.%02d", (int)report.vsys,
+                (int)(report.vsys * 100) % 100);
+    vcp_println("die_temp=%d.%02d", (int)report.die_temp,
+                (int)(report.die_temp * 100) % 100);
+    vcp_println("ntc_temp=%d.%02d", (int)report.ntc_temp,
+                (int)(report.ntc_temp * 100) % 100);
+    vcp_println("ibat=%d.%02d", (int)report.ibat,
+                (int)abs(report.ibat * 100) % 100);
+    vcp_println("ibat_meas_status=%02X", report.ibat_meas_status);
+    vcp_println("ilim_status=%02X", report.ilim_status);
+    vcp_println("ntc_status=%02X", report.ntc_status);
+    vcp_println("die_temp_status=%02X", report.die_temp_status);
+    vcp_println("charge_status=%02X", report.charge_status);
+    vcp_println("usb_status=%02X", report.usb_status);
+    vcp_println("vbusin_status=%02X", report.vbus_status);
+
+    vcp_println("events_adc=%02X", report.events_adc);
+    vcp_println("events_bcharger0=%02X", report.events_bcharger0);
+    vcp_println("events_bcharger1=%02X", report.events_bcharger1);
+    vcp_println("events_bcharger2=%02X", report.events_bcharger2);
+    vcp_println("events_shphld=%02X", report.events_shphld);
+    vcp_println("events_vbusin0=%02X", report.events_vbusin0);
+    vcp_println("events_vbusin1=%02X", report.events_vbusin1);
+    vcp_println("events_gpio=%02X", report.events_gpio);
+  }
+}
+
 #define BACKLIGHT_NORMAL 150
 
 // Initializes system in emergency mode and shows RSOD
@@ -825,6 +953,7 @@ int main(void) {
 #ifdef USE_I2C
   i2c_init();
 #endif
+  pmic_init();
 #ifdef USE_TOUCH
   touch_init();
 #endif
@@ -960,6 +1089,10 @@ int main(void) {
       test_wipe();
     } else if (startswith(line, "REBOOT")) {
       test_reboot();
+    } else if (startswith(line, "PMIC ")) {
+      test_pmic(line + 5);
+    } else if (startswith(line, "PMIC")) {
+      test_pmic(line + 4);
     } else {
       vcp_println("UNKNOWN");
     }

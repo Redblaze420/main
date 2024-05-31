@@ -76,6 +76,9 @@
 #ifdef USE_I2C
 #include "i2c.h"
 #endif
+// #ifdef USE_PMIC
+#include "powerctl/pmic.h"
+// #endif
 #ifdef USE_TOUCH
 #include "touch.h"
 #endif
@@ -205,6 +208,8 @@ int main(void) {
 #ifdef USE_I2C
   i2c_init();
 #endif
+
+  pmic_init();
 
 #ifdef USE_TOUCH
   touch_init();
