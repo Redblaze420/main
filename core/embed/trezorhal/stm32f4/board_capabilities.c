@@ -24,6 +24,8 @@
 #include "model.h"
 #include "mpu.h"
 
+#ifdef KERNEL_MODE
+
 static uint32_t board_name = 0;
 
 static struct BoardloaderVersion boardloader_version;
@@ -84,3 +86,5 @@ void parse_boardloader_capabilities() {
 
   mpu_restore(mpu_mode);
 }
+
+#endif  // KERNEL_MODE
