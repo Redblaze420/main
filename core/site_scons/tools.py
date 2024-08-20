@@ -140,3 +140,14 @@ def embed_binary(obj_program, env, section, target_, file):
     )
 
     env.Depends(obj_program, compress)
+
+
+def embed_raw_binary(obj_program, env, section, target_, file):
+    obj_program.extend(
+        env.Command(
+            target=target_,
+            source=file,
+            action="$OBJCOPY -I binary -O elf32-littlearm -B arm"
+            f" --rename-section .data=.{section}" + " $SOURCE $TARGET",
+        )
+    )

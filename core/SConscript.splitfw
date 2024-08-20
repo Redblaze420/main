@@ -1,0 +1,168 @@
+# pylint: disable=E0602
+# fmt: off
+
+import os
+import tools, models
+
+BITCOIN_ONLY = ARGUMENTS.get('BITCOIN_ONLY', '0')
+PRODUCTION = ARGUMENTS.get('PRODUCTION', '0') == '1'
+BOOTLOADER_QA = ARGUMENTS.get('BOOTLOADER_QA', '0') == '1'
+BOOTLOADER_DEVEL = ARGUMENTS.get('BOOTLOADER_DEVEL', '0') == '1'
+TREZOR_MODEL = ARGUMENTS.get('TREZOR_MODEL', 'T')
+HW_REVISION = ARGUMENTS.get('HW_REVISION', None)
+EVERYTHING = BITCOIN_ONLY != '1'
+
+CPPDEFINES_HAL = []
+
+
+
+env = Environment(
+    ENV=os.environ,
+    CFLAGS=f"{ARGUMENTS.get('CFLAGS', '')}",
+    CPPDEFINES_IMPLICIT=[]
+    )
+
+models.configure_board(TREZOR_MODEL, HW_REVISION, [], env, CPPDEFINES_HAL, [], [])
+
+FILE_SUFFIX= env.get('ENV')['SUFFIX']
+
+SOURCE_FIRMWARE = [
+    'embed/splitfw/header.S',
+]
+
+
+env.Replace(
+    CAT='cat',
+    DD='dd',
+    CP='cp',
+    SED='sed',
+    AS='arm-none-eabi-as',
+    AR='arm-none-eabi-ar',
+    CC='arm-none-eabi-gcc',
+    LINK='arm-none-eabi-gcc',
+    SIZE='arm-none-eabi-size',
+    STRIP='arm-none-eabi-strip',
+    OBJCOPY='arm-none-eabi-objcopy', )
+
+env.Replace(
+    TREZOR_MODEL=TREZOR_MODEL,)
+
+
+LD_VARIANT  = ''
+
+ALLPATHS = []
+
+env.Replace(
+    COPT=env.get('ENV').get('OPTIMIZE', '-Os'),
+    CCFLAGS='$COPT '
+    '-g3 '
+    '-nostdlib '
+    '-std=gnu11 -Wall -Werror -Wdouble-promotion -Wpointer-arith -Wno-missing-braces -fno-common '
+    '-fsingle-precision-constant -fdata-sections -ffunction-sections '
+    '-ffreestanding '
+    '-fstack-protector-all '
+    +  env.get('ENV')["CPU_CCFLAGS"],
+    LINKFLAGS='-T embed/splitfw/memory_${TREZOR_MODEL}%s.ld -Wl,--gc-sections  -Wl,--print-memory-usage -Wl,-Map=build/splitfw/splitfw.map -Wl,--warn-common' % LD_VARIANT,
+    CPPPATH=ALLPATHS,
+    CPPDEFINES=['TREZOR_MODEL_'+TREZOR_MODEL] + CPPDEFINES_HAL,
+    ASFLAGS=env.get('ENV')['CPU_ASFLAGS'],
+    ASPPFLAGS='$CFLAGS $CCFLAGS',
+    )
+
+env.Replace(
+    HEADERTOOL='tools/headertool.py',
+    PYTHON='python',
+)
+
+
+#
+# Program objects
+#
+
+source_files = SOURCE_FIRMWARE
+obj_program = []
+obj_program.extend(env.Object(source=SOURCE_FIRMWARE))
+
+
+MODEL_IDENTIFIER = models.get_model_identifier(TREZOR_MODEL)
+
+# select vendor header
+if BOOTLOADER_QA or BOOTLOADER_DEVEL:
+    vendor = "dev_DO_NOT_SIGN_signed_dev"
+elif not PRODUCTION:
+    vendor = "unsafe_signed_prod"
+else:
+    if TREZOR_MODEL in ('T',):
+        vendor = "satoshilabs_signed_prod"
+    elif BITCOIN_ONLY == '1':
+        vendor = "trezor_btconly_signed_prod"
+    else:
+        vendor = "trezor_signed_prod"
+
+VENDORHEADER = f'embed/models/{MODEL_IDENTIFIER}/vendorheader/vendorheader_{vendor}.bin'
+
+obj_program.extend(
+    env.Command(
+        target='embed/firmware/vendorheader.o',
+        source=VENDORHEADER,
+        action='$OBJCOPY -I binary -O elf32-littlearm -B arm'
+        ' --rename-section .data=.vendorheader,alloc,load,readonly,contents'
+        ' $SOURCE $TARGET', ))
+
+tools.embed_raw_binary(
+        obj_program,
+        env,
+        'kernel',
+        'build/kernel/kernel.o',
+        f'build/kernel/kernel.bin',
+        )
+
+tools.embed_raw_binary(
+        obj_program,
+        env,
+        'coreapp',
+        'build/coreapp/coreapp.o',
+        f'build/coreapp/coreapp.bin',
+        )
+
+
+
+program_elf = env.Command(
+    target='splitfw.elf',
+    source=obj_program,
+    action=
+    '$LINK -o $TARGET $CCFLAGS $CFLAGS $SOURCES $LINKFLAGS',
+)
+
+BINARY_NAME = f"build/splitfw/splitfw-{models.get_model_identifier(TREZOR_MODEL)}"
+if not EVERYTHING:
+    BINARY_NAME += "-btconly"
+BINARY_NAME += "-" + tools.get_version('embed/splitfw/version.h')
+BINARY_NAME += "-" + tools.get_git_revision_short_hash()
+BINARY_NAME += "-dirty" if tools.get_git_modified() else ""
+BINARY_NAME += ".bin"
+
+
+if 'STM32F427xx' in CPPDEFINES_HAL or 'STM32F429xx' in CPPDEFINES_HAL:
+    action_bin=[
+        '$OBJCOPY -O binary -j .vendorheader -j .header -j .kernel_app -j .flash_app --pad-to 0x08100000 $SOURCE ${TARGET}.p1',
+        '$OBJCOPY -O binary -j .flash2 $SOURCE ${TARGET}.p2',
+        '$CAT ${TARGET}.p1 ${TARGET}.p2 > $TARGET',
+        '$HEADERTOOL -h $TARGET ' + ('-D' if not PRODUCTION else ''),
+        '$DD if=$TARGET of=${TARGET}.p1 skip=0 bs=128k count=6',
+        '$CP $TARGET ' + BINARY_NAME,
+    ]
+elif 'STM32U5A9xx' in CPPDEFINES_HAL or 'STM32U585xx' in CPPDEFINES_HAL:
+    action_bin=[
+        '$OBJCOPY -O binary -j .vendorheader -j .header -j .flash_kernel  -j .flash_app $SOURCE ${TARGET}',
+        '$HEADERTOOL -h $TARGET ' + ('-D' if not PRODUCTION else ''),
+        '$CP $TARGET ' + BINARY_NAME,
+        ]
+else:
+    raise Exception("Unknown MCU")
+
+program_bin = env.Command(
+    target='splitfw.bin',
+    source=program_elf,
+    action=action_bin,
+)

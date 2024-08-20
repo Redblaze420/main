@@ -3,7 +3,7 @@
 ENTRY(reset_handler)
 
 MEMORY {
-  FLASH  (rx)  : ORIGIN = 0x0C050000 + 0x28000, LENGTH = 1664K - 0x28000
+  FLASH  (rx)  : ORIGIN = 0x0C050000 + 160K, LENGTH = 1664K - 160K
   SRAM1  (wal) : ORIGIN = 0x30000000, LENGTH =  192K - 16K
   BOOT_ARGS  (wal) : ORIGIN = 0x3002FF00, LENGTH =  0x100
   SRAM2  (wal) : ORIGIN = 0x30030000 + 8K, LENGTH =  64K - 8K
@@ -55,14 +55,6 @@ _heap_start = ADDR(.heap);
 _heap_end = ADDR(.heap) + SIZEOF(.heap);
 
 SECTIONS {
-  .vendorheader : ALIGN(4) {
-    KEEP(*(.vendorheader))
-  } >FLASH AT>FLASH
-
-  .header : ALIGN(4) {
-    KEEP(*(.header));
-  } >FLASH AT>FLASH
-
   .flash : ALIGN(512) {
     KEEP(*(.vector_table));
     . = ALIGN(4);

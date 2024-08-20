@@ -18,6 +18,7 @@ BOOTLOADER_CI_BUILD_DIR   = $(BUILD_DIR)/bootloader_ci
 BOOTLOADER_EMU_BUILD_DIR  = $(BUILD_DIR)/bootloader_emu
 PRODTEST_BUILD_DIR    = $(BUILD_DIR)/prodtest
 REFLASH_BUILD_DIR     = $(BUILD_DIR)/reflash
+SPLITFW_BUILD_DIR      = $(BUILD_DIR)/splitfw
 KERNEL_BUILD_DIR      = $(BUILD_DIR)/kernel
 COREAPP_BUILD_DIR     = $(BUILD_DIR)/coreapp
 FIRMWARE_BUILD_DIR    = $(BUILD_DIR)/firmware
@@ -279,6 +280,12 @@ build_reflash: ## build reflash firmware + reflash image
 	dd if=build/boardloader/boardloader.bin of=$(REFLASH_BUILD_DIR)/sdimage.bin bs=1 seek=0
 	dd if=build/bootloader/bootloader.bin of=$(REFLASH_BUILD_DIR)/sdimage.bin bs=1 seek=49152
 
+build_splitfw: build_kernel build_coreapp ## build kernel image
+	$(SCONS) CFLAGS="$(CFLAGS)" PRODUCTION="$(PRODUCTION)" \
+		TREZOR_MODEL="$(TREZOR_MODEL)" \
+		BOOTLOADER_QA="$(BOOTLOADER_QA)" BOOTLOADER_DEVEL="$(BOOTLOADER_DEVEL)" \
+		$(SPLITFW_BUILD_DIR)/splitfw.bin
+
 build_kernel: ## build kernel image
 	$(SCONS) CFLAGS="$(CFLAGS)" PRODUCTION="$(PRODUCTION)" \
 		TREZOR_MODEL="$(TREZOR_MODEL)" \
@@ -345,6 +352,9 @@ clean_prodtest: ## clean prodtest build
 clean_reflash: ## clean reflash build
 	rm -rf $(REFLASH_BUILD_DIR)
 
+clean_splitfw: ## clean splitfw build
+	rm -rf $(SPLITFW_BUILD_DIR)
+
 clean_kernel: ## clean kernel build
 	rm -rf $(KERNEL_BUILD_DIR)
 
@@ -378,6 +388,9 @@ flash_prodtest: $(PRODTEST_BUILD_DIR)/prodtest.bin ## flash prodtest using OpenO
 
 flash_kernel: $(KERNEL_BUILD_DIR)/kernel.bin ## flash kernel using OpenOCD
 	$(OPENOCD) -c "init; reset halt; flash write_image erase $< $(KERNEL_START); exit"
+
+flash_splitfw: $(SPLITFW_BUILD_DIR)/splitfw.bin ## flash splitfw using OpenOCD
+	$(OPENOCD) -c "init; reset halt; flash write_image erase $< $(FIRMWARE_START); exit"
 
 flash_coreapp: $(COREAPP_BUILD_DIR)/coreapp.bin ## flash coreapp using OpenOCD
 ifeq ($(MCU),$(filter $(MCU),STM32F4))

@@ -434,7 +434,6 @@ FEATURES_AVAILABLE = models.configure_board(TREZOR_MODEL, HW_REVISION, FEATURES_
 FILE_SUFFIX= env.get('ENV')['SUFFIX']
 
 SOURCE_FIRMWARE = [
-    'embed/coreapp/header.S',
     'embed/coreapp/main.c',
     'embed/coreapp/mphalport.c',
     'embed/coreapp/nlrthumb.c',
@@ -857,36 +856,6 @@ env.Append(LINKFLAGS=f' -L{RUST_LIBDIR}')
 env.Append(LINKFLAGS=f' -l{RUST_LIB}')
 
 
-MODEL_IDENTIFIER = models.get_model_identifier(TREZOR_MODEL)
-BOOTLOADER_SUFFIX = MODEL_IDENTIFIER
-if BOOTLOADER_QA or BOOTLOADER_DEVEL:
-    BOOTLOADER_SUFFIX += '_qa'
-
-# select vendor header
-if BOOTLOADER_QA or BOOTLOADER_DEVEL:
-    vendor = "dev_DO_NOT_SIGN_signed_dev"
-elif not PRODUCTION:
-    vendor = "unsafe_signed_prod"
-else:
-    if TREZOR_MODEL in ('T',):
-        vendor = "satoshilabs_signed_prod"
-    elif BITCOIN_ONLY == '1':
-        vendor = "trezor_btconly_signed_prod"
-    else:
-        vendor = "trezor_signed_prod"
-
-VENDORHEADER = f'embed/models/{MODEL_IDENTIFIER}/vendorheader/vendorheader_{vendor}.bin'
-
-
-if TREZOR_MODEL not in ('1',):
-    obj_program.extend(
-        env.Command(
-            target='embed/coreapp/vendorheader.o',
-            source=VENDORHEADER,
-            action='$OBJCOPY -I binary -O elf32-littlearm -B arm'
-            ' --rename-section .data=.vendorheader,alloc,load,readonly,contents'
-            ' $SOURCE $TARGET', ))
-
 env.Depends(obj_program, qstr_generated)
 
 program_elf = env.Command(
@@ -909,30 +878,21 @@ BINARY_NAME += "-dirty" if tools.get_git_modified() else ""
 BINARY_NAME += ".bin"
 
 
-if TREZOR_MODEL in ('1'):
+if 'STM32F427xx' in CPPDEFINES_HAL or 'STM32F429xx' in CPPDEFINES_HAL:
     action_bin=[
-        '$OBJCOPY -O binary -j .header -j .flash -j .data -j .confidential $SOURCE $TARGET',
-        '../legacy/bootloader/firmware_sign.py -f $TARGET',
+        '$OBJCOPY -O binary -j .flash -j .data -j .confidential --pad-to 0x08100000 $SOURCE ${TARGET}.p1',
+        '$OBJCOPY -O binary -j .flash2 $SOURCE ${TARGET}.p2',
+        '$CAT ${TARGET}.p1 ${TARGET}.p2 > $TARGET',
+        '$DD if=$TARGET of=${TARGET}.p1 skip=0 bs=128k count=6',
         '$CP $TARGET ' + BINARY_NAME,
     ]
-else:
-    if 'STM32F427xx' in CPPDEFINES_HAL or 'STM32F429xx' in CPPDEFINES_HAL:
-        action_bin=[
-            '$OBJCOPY -O binary -j .vendorheader -j .header -j .flash -j .data -j .confidential --pad-to 0x08100000 $SOURCE ${TARGET}.p1',
-            '$OBJCOPY -O binary -j .flash2 $SOURCE ${TARGET}.p2',
-            '$CAT ${TARGET}.p1 ${TARGET}.p2 > $TARGET',
-            '$HEADERTOOL -h $TARGET ' + ('-D' if not PRODUCTION else ''),
-            '$DD if=$TARGET of=${TARGET}.p1 skip=0 bs=128k count=6',
-            '$CP $TARGET ' + BINARY_NAME,
+elif 'STM32U5A9xx' in CPPDEFINES_HAL or 'STM32U585xx' in CPPDEFINES_HAL:
+    action_bin=[
+        '$OBJCOPY -O binary -j .flash -j .data -j .confidential $SOURCE ${TARGET}',
+        '$CP $TARGET ' + BINARY_NAME,
         ]
-    elif 'STM32U5A9xx' in CPPDEFINES_HAL or 'STM32U585xx' in CPPDEFINES_HAL:
-        action_bin=[
-            '$OBJCOPY -O binary -j .vendorheader -j .header -j .flash -j .data -j .confidential $SOURCE ${TARGET}',
-            '$HEADERTOOL -h $TARGET ' + ('-D' if not PRODUCTION else ''),
-            '$CP $TARGET ' + BINARY_NAME,
-            ]
-    else:
-        raise Exception("Unknown MCU")
+else:
+    raise Exception("Unknown MCU")
 
 program_bin = env.Command(
     target='coreapp.bin',

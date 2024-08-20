@@ -45,11 +45,9 @@ sram6_end = ORIGIN(SRAM6) + LENGTH(SRAM6);
 boot_args_start = ORIGIN(BOOT_ARGS);
 boot_args_end = ORIGIN(BOOT_ARGS) + LENGTH(BOOT_ARGS);
 
-_codelen = SIZEOF(.flash) + SIZEOF(.data) + SIZEOF(.confidential);
+_codelen = 160K;
 _flash_start = ORIGIN(FLASH);
 _flash_end = ORIGIN(FLASH) + LENGTH(FLASH);
-_heap_start = ADDR(.heap);
-_heap_end = ADDR(.heap) + SIZEOF(.heap);
 
 SECTIONS {
   .vendorheader : ALIGN(4) {
@@ -110,8 +108,6 @@ SECTIONS {
     . = ALIGN(4);
   } >SRAM3
 
-  .heap : ALIGN(4) {
-  } >SRAM3
 
   .boot_args : ALIGN(8) {
     *(.boot_command*);

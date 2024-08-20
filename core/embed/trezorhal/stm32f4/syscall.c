@@ -183,8 +183,7 @@ __attribute__((naked, no_stack_protector)) void SVC_Handler(void) {
 
 void __attribute__((no_stack_protector, noreturn))
 start_unprivileged_app(void) {
-  //!@# TODO calculate better
-  static const uint32_t app_start = COREAPP_START + IMAGE_HEADER_SIZE + 0x0400;
+  static const uint32_t app_start = COREAPP_START;
 
   mpu_reconfig(MPU_MODE_APP);
 

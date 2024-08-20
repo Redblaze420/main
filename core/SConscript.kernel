@@ -479,17 +479,15 @@ if TREZOR_MODEL in ('1'):
 else:
     if 'STM32F427xx' in CPPDEFINES_HAL or 'STM32F429xx' in CPPDEFINES_HAL:
         action_bin=[
-            '$OBJCOPY -O binary -j .vendorheader -j .header -j .flash -j .data -j .confidential --pad-to 0x08100000 $SOURCE ${TARGET}.p1',
+            '$OBJCOPY -O binary -j -j .flash -j .data -j .confidential --pad-to 0x08100000 $SOURCE ${TARGET}.p1',
             '$OBJCOPY -O binary -j .flash2 $SOURCE ${TARGET}.p2',
             '$CAT ${TARGET}.p1 ${TARGET}.p2 > $TARGET',
-            '$HEADERTOOL -h $TARGET ' + ('-D' if not PRODUCTION else ''),
             '$DD if=$TARGET of=${TARGET}.p1 skip=0 bs=128k count=6',
             '$CP $TARGET ' + BINARY_NAME,
         ]
     elif 'STM32U5A9xx' in CPPDEFINES_HAL or 'STM32U585xx' in CPPDEFINES_HAL:
         action_bin=[
-            '$OBJCOPY -O binary -j .vendorheader -j .header -j .flash -j .data -j .confidential $SOURCE ${TARGET}',
-            '$HEADERTOOL -h $TARGET ' + ('-D' if not PRODUCTION else ''),
+            '$OBJCOPY -O binary -j .flash -j .data -j .confidential $SOURCE ${TARGET}',
             '$CP $TARGET ' + BINARY_NAME,
             ]
     else:
