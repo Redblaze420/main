@@ -32,15 +32,16 @@ CROSS_PORT_OPTS ?=
 PRODUCTION ?= 0
 PYOPT      ?= 1
 BITCOIN_ONLY ?= 0
-BOOTLOADER_QA ?= 0
-BOOTLOADER_DEVEL ?= 0
-TREZOR_MODEL ?= T
+BOOTLOADER_QA ?= 1
+BOOTLOADER_DEVEL ?= 1
+TREZOR_MODEL ?= T3T1
 TREZOR_MEMPERF ?= 0
 ADDRESS_SANITIZER ?= 0
 CMAKELISTS ?= 0
 PYTEST_TIMEOUT ?= 500
 TEST_LANG ?= "en"
 THP ?= 0
+NEW_RENDERING ?= 1
 
 # OpenOCD interface default. Alternative: ftdi/olimex-arm-usb-tiny-h
 OPENOCD_INTERFACE ?= stlink
@@ -288,13 +289,13 @@ build_splitfw: build_kernel build_coreapp ## build kernel image
 
 build_kernel: ## build kernel image
 	$(SCONS) CFLAGS="$(CFLAGS)" PRODUCTION="$(PRODUCTION)" \
-		TREZOR_MODEL="$(TREZOR_MODEL)" \
+		TREZOR_MODEL="$(TREZOR_MODEL)" CMAKELISTS="$(CMAKELISTS)" \
 		BOOTLOADER_QA="$(BOOTLOADER_QA)" BOOTLOADER_DEVEL="$(BOOTLOADER_DEVEL)" \
 		$(KERNEL_BUILD_DIR)/kernel.bin
 
 build_coreapp: templates build_cross ## build coreapp with frozen modules
 	$(SCONS) CFLAGS="$(CFLAGS)" PRODUCTION="$(PRODUCTION)" \
-		TREZOR_MODEL="$(TREZOR_MODEL)" CMAKELISTS="$(CMAKELISTS)" \
+		TREZOR_MODEL="$(TREZOR_MODEL)" \
 		PYOPT="$(PYOPT)" BITCOIN_ONLY="$(BITCOIN_ONLY)" \
 		BOOTLOADER_QA="$(BOOTLOADER_QA)" BOOTLOADER_DEVEL="$(BOOTLOADER_DEVEL)" \
 		DISABLE_OPTIGA="$(DISABLE_OPTIGA)" THP="$(THP)" NEW_RENDERING="$(NEW_RENDERING)" \
@@ -508,6 +509,10 @@ upload: ## upload firmware using trezorctl
 
 upload_prodtest: ## upload prodtest using trezorctl
 	trezorctl firmware_update -s -f $(PRODTEST_BUILD_DIR)/prodtest.bin
+
+
+upload_splitfw: ## upload prodtest using trezorctl
+	trezorctl firmware_update -s -f $(SPLITFW_BUILD_DIR)/splitfw.bin
 
 coverage:  ## generate coverage report
 	./tools/coverage-report

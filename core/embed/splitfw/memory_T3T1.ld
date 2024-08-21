@@ -2,11 +2,11 @@
 
 
 MEMORY {
-  FLASH_KERNEL (rx)  : ORIGIN = 0x0C050000, LENGTH = 160K
-  FLASH_APP (rx)  : ORIGIN = 0x0C050000 + 160K, LENGTH = 1664K - 160K
+  FLASH_KERNEL (rx)  : ORIGIN = 0x0C050000, LENGTH = 224K
+  FLASH_APP (rx)  : ORIGIN = 0x0C050000 + 224K, LENGTH = 1664K - 224K
 }
 
-_codelen = 160K - SIZEOF(.vendorheader) - SIZEOF(.header) + SIZEOF(.flash_app);
+_codelen = 224K - SIZEOF(.vendorheader) - SIZEOF(.header) + SIZEOF(.flash_app);
 
 
 SECTIONS {

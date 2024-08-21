@@ -3,7 +3,7 @@
 ENTRY(reset_handler)
 
 MEMORY {
-  FLASH  (rx)  : ORIGIN = 0x0C050000, LENGTH = 160K
+  FLASH  (rx)  : ORIGIN = 0x0C050000, LENGTH = 224K
   SRAM1  (wal) : ORIGIN = 0x3002C000, LENGTH =  16K - 0x100
   BOOT_ARGS  (wal) : ORIGIN = 0x3002FF00, LENGTH =  0x100
   SRAM2  (wal) : ORIGIN = 0x30030000, LENGTH =  8K
@@ -45,7 +45,7 @@ sram6_end = ORIGIN(SRAM6) + LENGTH(SRAM6);
 boot_args_start = ORIGIN(BOOT_ARGS);
 boot_args_end = ORIGIN(BOOT_ARGS) + LENGTH(BOOT_ARGS);
 
-_codelen = 160K;
+_codelen = 224K;
 _flash_start = ORIGIN(FLASH);
 _flash_end = ORIGIN(FLASH) + LENGTH(FLASH);
 
@@ -55,7 +55,7 @@ SECTIONS {
   } >FLASH AT>FLASH
 
   .header : ALIGN(4) {
-    .= 1K;
+    . = 1K;
   } >FLASH AT>FLASH
 
   .flash : ALIGN(512) {
@@ -86,7 +86,7 @@ SECTIONS {
   } >SRAM1
 
   .stack : ALIGN(8) {
-    . = 4K; /* Overflow causes UsageFault */
+    . = 6K; /* Overflow causes UsageFault */
   } >SRAM2
 
   .confidential : ALIGN(512) {

@@ -23,6 +23,7 @@
 #include "irq.h"
 #include "syscall.h"
 
+#include "bl_check.h"
 #include "board_capabilities.h"
 #include "display.h"
 #include "dma2d.h"
@@ -129,7 +130,9 @@ void drivers_init() {
   mpu_reconfig(MPU_MODE_DEFAULT);
 
 #if PRODUCTION || BOOTLOADER_QA
-  // check_and_replace_bootloader();
+  mpu_reconfig(MPU_MODE_BOOTLOADER);
+  check_and_replace_bootloader();
+  mpu_reconfig(MPU_MODE_DEFAULT);
 #endif
 
 #ifdef USE_BUTTON

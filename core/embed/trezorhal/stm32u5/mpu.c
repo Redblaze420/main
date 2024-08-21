@@ -348,7 +348,7 @@ mpu_mode_t mpu_reconfig(mpu_mode_t mode) {
       SET_REGION( 7, PERIPH_BASE_NS,           SIZE_512M,          PERIPHERAL,  YES,    NO ); // Peripherals
       break;
     case MPU_MODE_BOOTLOADER:
-      SET_REGION( 6, BOOTLOADER_START,         L3_PREV_SIZE_BLD,   FLASH_DATA,  YES,    NO ); // Bootloader + Storage
+      SET_REGION( 6, BOOTLOADER_START,         BOOTLOADER_SIZE,    FLASH_DATA,  YES,    NO ); // Bootloader
       SET_REGION( 7, PERIPH_BASE_NS,           SIZE_512M,          PERIPHERAL,  YES,    NO ); // Peripherals
       break;
     case MPU_MODE_APP:

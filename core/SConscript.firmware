@@ -225,6 +225,7 @@ CPPPATH_MOD += [
 ]
 SOURCE_MOD += [
     'embed/extmod/modtrezorui/modtrezorui.c',
+    'embed/lib/bl_check.c',
     'embed/lib/buffers.c',
     'embed/lib/colors.c',
     'embed/lib/display_utils.c',
@@ -452,7 +453,6 @@ FEATURES_AVAILABLE = models.configure_board(TREZOR_MODEL, HW_REVISION, FEATURES_
 FILE_SUFFIX= env.get('ENV')['SUFFIX']
 
 SOURCE_FIRMWARE = [
-    'embed/firmware/bl_check.c',
     'embed/firmware/delay.c',
     'embed/firmware/header.S',
     'embed/firmware/main.c',
@@ -914,6 +914,7 @@ if TREZOR_MODEL not in ('DISC1', 'DISC2'):
             'bootloader',
             'embed/firmware/bootloaders/bootloader.o',
             f'embed/firmware/bootloaders/bootloader_{BOOTLOADER_SUFFIX}.bin',
+            'firmware'
             )
 
 

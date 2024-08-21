@@ -74,6 +74,7 @@ elif TREZOR_MODEL in ('T3T1',):
 CPPPATH_MOD += [
     'embed/extmod/modtrezorconfig',
     'vendor/trezor-storage',
+    'vendor/micropython/lib/uzlib',
 ]
 SOURCE_MOD += [
 #    'embed/extmod/modtrezorconfig/modtrezorconfig.c',
@@ -210,6 +211,7 @@ if FEATURE_FLAGS["AES_GCM"]:
     ]
 
 SOURCE_MOD += [
+    'embed/lib/bl_check.c',
 #    'embed/lib/buffers.c',
 #    'embed/lib/colors.c',
 #    'embed/lib/display_utils.c',
@@ -226,6 +228,9 @@ SOURCE_MOD += [
     'embed/lib/translations.c',
     'embed/lib/unit_variant.c',
     'embed/extmod/modtrezorcrypto/rand.c',
+    'vendor/micropython/lib/uzlib/adler32.c',
+    'vendor/micropython/lib/uzlib/crc32.c',
+    'vendor/micropython/lib/uzlib/tinflate.c',
 ]
 
 if NEW_RENDERING:
@@ -340,10 +345,7 @@ env.Replace(
 env.Replace(
     TREZOR_MODEL=TREZOR_MODEL,)
 
-if TREZOR_MODEL in ('1',):
-    LD_VARIANT  = '' if EVERYTHING else '_min'
-else:
-    LD_VARIANT  = ''
+LD_VARIANT  = ''
 
 ALLPATHS = [
         '.',
@@ -379,8 +381,6 @@ env.Replace(
 env.Replace(
     HEADERTOOL='tools/headertool.py',
     PYTHON='python',
-    MAKEVERSIONHDR='$PYTHON vendor/micropython/py/makeversionhdr.py',
-    MAKEMODULEDEFS='$PYTHON vendor/micropython/py/makemoduledefs.py',
     MAKECMAKELISTS='$PYTHON tools/make_cmakelists.py',
 )
 
@@ -431,22 +431,22 @@ else:
 VENDORHEADER = f'embed/models/{MODEL_IDENTIFIER}/vendorheader/vendorheader_{vendor}.bin'
 
 
-if TREZOR_MODEL not in ('1',):
-    obj_program.extend(
-        env.Command(
-            target='embed/kernel/vendorheader.o',
-            source=VENDORHEADER,
-            action='$OBJCOPY -I binary -O elf32-littlearm -B arm'
-            ' --rename-section .data=.vendorheader,alloc,load,readonly,contents'
-            ' $SOURCE $TARGET', ))
+obj_program.extend(
+    env.Command(
+        target='embed/kernel/vendorheader.o',
+        source=VENDORHEADER,
+        action='$OBJCOPY -I binary -O elf32-littlearm -B arm'
+        ' --rename-section .data=.vendorheader,alloc,load,readonly,contents'
+        ' $SOURCE $TARGET', ))
 
-if False: # TREZOR_MODEL not in ('DISC1', 'DISC2'):
+if TREZOR_MODEL not in ('DISC1', 'DISC2'):
     tools.embed_binary(
             obj_program,
             env,
             'bootloader',
-            'embed/firmware/bootloaders/bootloader.o',
-            f'embed/firmware/bootloaders/bootloader_{BOOTLOADER_SUFFIX}.bin',
+            'embed/lib/bootloaders/bootloader.o',
+            f'embed/lib/bootloaders/bootloader_{BOOTLOADER_SUFFIX}.bin',
+            'kernel'
             )
 
 
@@ -468,29 +468,21 @@ BINARY_NAME += "-" + tools.get_git_revision_short_hash()
 BINARY_NAME += "-dirty" if tools.get_git_modified() else ""
 BINARY_NAME += ".bin"
 
-
-if TREZOR_MODEL in ('1'):
+if 'STM32F427xx' in CPPDEFINES_HAL or 'STM32F429xx' in CPPDEFINES_HAL:
     action_bin=[
-        '$OBJCOPY -O binary -j .header -j .flash -j .data -j .confidential $SOURCE $TARGET',
-        '../legacy/bootloader/firmware_sign.py -f $TARGET',
+        '$OBJCOPY -O binary -j -j .flash -j .data -j .confidential --pad-to 0x08100000 $SOURCE ${TARGET}.p1',
+        '$OBJCOPY -O binary -j .flash2 $SOURCE ${TARGET}.p2',
+        '$CAT ${TARGET}.p1 ${TARGET}.p2 > $TARGET',
+        '$DD if=$TARGET of=${TARGET}.p1 skip=0 bs=128k count=6',
         '$CP $TARGET ' + BINARY_NAME,
     ]
-else:
-    if 'STM32F427xx' in CPPDEFINES_HAL or 'STM32F429xx' in CPPDEFINES_HAL:
-        action_bin=[
-            '$OBJCOPY -O binary -j -j .flash -j .data -j .confidential --pad-to 0x08100000 $SOURCE ${TARGET}.p1',
-            '$OBJCOPY -O binary -j .flash2 $SOURCE ${TARGET}.p2',
-            '$CAT ${TARGET}.p1 ${TARGET}.p2 > $TARGET',
-            '$DD if=$TARGET of=${TARGET}.p1 skip=0 bs=128k count=6',
-            '$CP $TARGET ' + BINARY_NAME,
+elif 'STM32U5A9xx' in CPPDEFINES_HAL or 'STM32U585xx' in CPPDEFINES_HAL:
+    action_bin=[
+        '$OBJCOPY -O binary -j .flash -j .data -j .confidential $SOURCE ${TARGET}',
+        '$CP $TARGET ' + BINARY_NAME,
         ]
-    elif 'STM32U5A9xx' in CPPDEFINES_HAL or 'STM32U585xx' in CPPDEFINES_HAL:
-        action_bin=[
-            '$OBJCOPY -O binary -j .flash -j .data -j .confidential $SOURCE ${TARGET}',
-            '$CP $TARGET ' + BINARY_NAME,
-            ]
-    else:
-        raise Exception("Unknown MCU")
+else:
+    raise Exception("Unknown MCU")
 
 program_bin = env.Command(
     target='kernel.bin',
