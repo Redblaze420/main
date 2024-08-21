@@ -55,7 +55,7 @@ SECTIONS {
   } >FLASH AT>FLASH
 
   .header : ALIGN(4) {
-    KEEP(*(.header));
+    .= 1K;
   } >FLASH AT>FLASH
 
   .flash : ALIGN(512) {

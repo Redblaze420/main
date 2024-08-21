@@ -302,7 +302,6 @@ FEATURES_AVAILABLE = models.configure_board(TREZOR_MODEL, HW_REVISION, FEATURES_
 FILE_SUFFIX= env.get('ENV')['SUFFIX']
 
 SOURCE_FIRMWARE = [
-    'embed/kernel/header.S',
     'embed/kernel/main.c',
     f'embed/kernel/startup_{FILE_SUFFIX}.S',
 ]
