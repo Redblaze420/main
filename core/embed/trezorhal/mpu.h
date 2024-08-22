@@ -39,6 +39,7 @@ typedef enum {
   MPU_MODE_BOOTLOADER,
   MPU_MODE_BOARDLOADER,
   MPU_MODE_APP,
+  MPU_MODE_SAES,
 } mpu_mode_t;
 
 void mpu_init(void);

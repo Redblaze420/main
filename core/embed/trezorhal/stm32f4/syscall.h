@@ -31,6 +31,8 @@
 
 #ifdef KERNEL_MODE
 
+#include "mpu.h"
+
 // Initializes the SVC/Syscall handlers
 void syscall_init(void);
 
@@ -48,7 +50,7 @@ void syscall_handler(uint32_t *args, uint32_t syscall);
 
 // Invokes application callback from the syscall handler
 uint32_t invoke_app_callback(uint32_t args1, uint32_t arg2, uint32_t arg3,
-                             void *callback);
+                             void *callback, mpu_mode_t mode);
 
 // Jumps to reset vector in the unprivileged application
 void __attribute__((noreturn)) start_unprivileged_app(void);

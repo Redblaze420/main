@@ -37,7 +37,8 @@ secbool secure_aes_init(void);
 // For optimal speed input and output should be aligned to 32 bits, size is in
 // bytes
 secbool secure_aes_ecb_encrypt_hw(const uint8_t* input, size_t size,
-                                  uint8_t* output, secure_aes_keysel_t key);
+                                  uint8_t* output, secure_aes_keysel_t key,
+                                  secbool unprivileged);
 
 // Decrypts a block of data using AES-256 ECB and HW key (DHUK, BHK or XORK)
 // For optimal speed input and output should be aligned to 32 bits, size is in

@@ -51,7 +51,7 @@ static PIN_UI_WAIT_CALLBACK storage_init_callback = NULL;
 static secbool storage_init_callback_wrapper(
     uint32_t wait, uint32_t progress, enum storage_ui_message_t message) {
   return (secbool)invoke_app_callback(wait, progress, message,
-                                      storage_init_callback);
+                                      storage_init_callback, MPU_MODE_APP);
 }
 
 void syscall_handler(uint32_t *args, uint32_t syscall) {

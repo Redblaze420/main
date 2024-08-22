@@ -73,8 +73,8 @@ __attribute__((naked, no_stack_protector)) static uint32_t _invoke_app_callback(
 }
 
 uint32_t invoke_app_callback(uint32_t args1, uint32_t arg2, uint32_t arg3,
-                             void *callback) {
-  mpu_mode_t mpu_mode = mpu_reconfig(MPU_MODE_APP);
+                             void *callback, mpu_mode_t mode) {
+  mpu_mode_t mpu_mode = mpu_reconfig(mode);
   uint32_t retval = _invoke_app_callback(args1, arg2, arg3, callback);
   mpu_reconfig(mpu_mode);
   return retval;

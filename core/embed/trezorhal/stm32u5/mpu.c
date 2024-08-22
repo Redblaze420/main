@@ -355,6 +355,10 @@ mpu_mode_t mpu_reconfig(mpu_mode_t mode) {
       SET_REGION( 6, ASSETS_START,             ASSETS_SIZE,        FLASH_DATA,   NO,   YES ); // Assets
       SET_REGION( 7, 0x5002B000,               SIZE_3K,            PERIPHERAL,  YES,   YES ); // Peripherals (DMA2D)
       break;
+    case MPU_MODE_SAES:
+      SET_REGION( 6, PERIPH_BASE_NS,           SIZE_512M,          PERIPHERAL,  YES,   YES ); // Peripherals (TAMP, SAES)
+      DIS_REGION( 7 );
+      break;
     case MPU_MODE_DEFAULT:
     default:
       SET_REGION( 6, SRAM4_BASE,               SIZE_16K,           SRAM,        YES,    NO ); // SRAM4

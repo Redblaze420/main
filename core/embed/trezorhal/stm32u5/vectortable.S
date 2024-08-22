@@ -182,6 +182,9 @@ vector_table:
 vector_table:
   .word main_stack_base // defined in linker script
   .word reset_handler
+  .word saes_invoke
+  .word saes_input
+  .word saes_output
 
 #endif
 
