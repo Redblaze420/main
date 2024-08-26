@@ -24,10 +24,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// only some of the keys are supported depending on execution environment
 typedef enum {
-  SECURE_AES_KEY_DHUK,
+  SECURE_AES_KEY_DHUK_SP,  // secure-privileged
+  SECURE_AES_KEY_DHUK_SN,  // secure-nonprivileged
+  SECURE_AES_KEY_DHUK_NP,  // nonsecure-privileged
+  SECURE_AES_KEY_DHUK_NN,  // nonsecure-nonprivileged
   SECURE_AES_KEY_BHK,
-  SECURE_AES_KEY_XORK,
+  SECURE_AES_KEY_XORK_SP,  // secure-privileged
+  SECURE_AES_KEY_XORK_SN,  // secure-nonprivileged
+  SECURE_AES_KEY_XORK_NP,  // nonsecure-privileged
+  SECURE_AES_KEY_XORK_NN,  // nonsecure-nonprivileged
 } secure_aes_keysel_t;
 
 // Initializes secure AES module
@@ -37,8 +44,7 @@ secbool secure_aes_init(void);
 // For optimal speed input and output should be aligned to 32 bits, size is in
 // bytes
 secbool secure_aes_ecb_encrypt_hw(const uint8_t* input, size_t size,
-                                  uint8_t* output, secure_aes_keysel_t key,
-                                  secbool unprivileged);
+                                  uint8_t* output, secure_aes_keysel_t key);
 
 // Decrypts a block of data using AES-256 ECB and HW key (DHUK, BHK or XORK)
 // For optimal speed input and output should be aligned to 32 bits, size is in

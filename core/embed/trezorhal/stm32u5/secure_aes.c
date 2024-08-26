@@ -49,30 +49,48 @@ static void secure_aes_load_bhk(void) {
 
 static uint32_t get_keysel(secure_aes_keysel_t key) {
   switch (key) {
-    case SECURE_AES_KEY_DHUK:
+    case SECURE_AES_KEY_DHUK_SP:
+    case SECURE_AES_KEY_DHUK_SN:
+    case SECURE_AES_KEY_DHUK_NP:
+    case SECURE_AES_KEY_DHUK_NN:
       return CRYP_KEYSEL_HW;
     case SECURE_AES_KEY_BHK:
       return CRYP_KEYSEL_SW;
-    case SECURE_AES_KEY_XORK:
+    case SECURE_AES_KEY_XORK_SP:
+    case SECURE_AES_KEY_XORK_SN:
+    case SECURE_AES_KEY_XORK_NP:
+    case SECURE_AES_KEY_XORK_NN:
       return CRYP_KEYSEL_HSW;
     default:
       return 0;
   }
 }
 
+static secbool is_key_supported(secure_aes_keysel_t key) {
+  switch (key) {
+    case SECURE_AES_KEY_DHUK_SP:
+    case SECURE_AES_KEY_BHK:
+    case SECURE_AES_KEY_XORK_SP:
+      return sectrue;
+    default:
+      return secfalse;
+  }
+}
+
+#ifdef SYSCALL_DISPATCH
 secbool unpriv_encrypt(const uint8_t* input, size_t size, uint8_t* output,
                        secure_aes_keysel_t key) {
   if (size != KERNEL_UNPRIVILEGED_SIZE) {
     return secfalse;
   }
 
-  if (key != SECURE_AES_KEY_XORK) {
+  if (key != SECURE_AES_KEY_XORK_SN) {
     return secfalse;
   }
 
-  uint32_t* saes_invoke = (uint32_t*)(COREAPP_START + 0x08);
-  uint8_t** saes_input = (uint8_t**)(COREAPP_START + 0x0C);
-  uint8_t** saes_output = (uint8_t**)(COREAPP_START + 0x10);
+  uint32_t* saes_invoke = (uint32_t*)(ENTRYPOINT_SAES_INVOKE);
+  uint8_t** saes_input = (uint8_t**)(ENTRYPOINT_SAES_INPUT);
+  uint8_t** saes_output = (uint8_t**)(ENTRYPOINT_SAES_OUTPUT);
 
   for (int i = 0; i < KERNEL_UNPRIVILEGED_SIZE; i++) {
     (*saes_input)[i] = input[i];
@@ -105,15 +123,19 @@ secbool unpriv_encrypt(const uint8_t* input, size_t size, uint8_t* output,
 
   return retval;
 }
+#endif
 
 secbool secure_aes_ecb_encrypt_hw(const uint8_t* input, size_t size,
-                                  uint8_t* output, secure_aes_keysel_t key,
-                                  secbool unprivileged) {
-#ifdef KERNEL_MODE
-  if (sectrue == unprivileged) {
+                                  uint8_t* output, secure_aes_keysel_t key) {
+#ifdef SYSCALL_DISPATCH
+  if (key == SECURE_AES_KEY_XORK_SN) {
     return unpriv_encrypt(input, size, output, key);
   }
 #endif
+
+  if (sectrue != is_key_supported(key)) {
+    return secfalse;
+  }
 
   CRYP_HandleTypeDef hcryp = {0};
   uint32_t iv[] = {0, 0, 0, 0};
@@ -198,6 +220,10 @@ secbool secure_aes_init(void) {
 
 secbool secure_aes_ecb_decrypt_hw(const uint8_t* input, size_t size,
                                   uint8_t* output, secure_aes_keysel_t key) {
+  if (sectrue != is_key_supported(key)) {
+    return secfalse;
+  }
+
   CRYP_HandleTypeDef hcryp = {0};
   uint32_t iv[] = {0, 0, 0, 0};
 
