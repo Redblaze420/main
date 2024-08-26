@@ -1,3 +1,7 @@
+use super::{
+    super::cshape::{render_loader, LoaderRange},
+    theme,
+};
 #[cfg(feature = "haptic")]
 use crate::trezorhal::haptic::{self, HapticEffect};
 use crate::{
@@ -5,15 +9,13 @@ use crate::{
     ui::{
         animation::Animation,
         component::{Component, Event, EventCtx, Pad},
-        display::{self, toif::Icon, Color},
+        display::{self, toif::Icon, Color, LOADER_MAX},
         geometry::{Alignment2D, Offset, Rect},
         model_tt::constant,
         shape::{self, Renderer},
         util::animation_disabled,
     },
 };
-
-use super::theme;
 
 const GROWING_DURATION_MS: u32 = 1000;
 const SHRINKING_DURATION_MS: u32 = 500;
@@ -242,24 +244,25 @@ impl Component for Loader {
 
             let center = self.pad.area.center();
 
-            let inactive_color = Color::black().blend(style.loader_color, 85);
+            let inactive_color = self.styles.normal.loader_color;
+            let active_color = self.styles.active.loader_color;
+            let background_color = style.background_color;
 
-            shape::Circle::new(center, constant::LOADER_OUTER)
-                .with_bg(inactive_color)
-                .render(target);
+            let end = 360.0 * progress as f32 / 1000.0;
+            let start = 0.0;
 
-            shape::Circle::new(center, constant::LOADER_OUTER)
-                .with_bg(style.loader_color)
-                .with_end_angle(360.0 * progress as f32 / 1000.0)
-                .render(target);
-
-            shape::Circle::new(center, constant::LOADER_INNER + 2)
-                .with_bg(style.loader_color)
-                .render(target);
-
-            shape::Circle::new(center, constant::LOADER_INNER)
-                .with_bg(style.background_color)
-                .render(target);
+            render_loader(
+                center,
+                inactive_color,
+                active_color,
+                background_color,
+                if progress >= LOADER_MAX {
+                    LoaderRange::Full
+                } else {
+                    LoaderRange::FromTo(start, end)
+                },
+                target,
+            );
 
             if let Some((icon, color)) = style.icon {
                 shape::ToifImage::new(center, icon.toif)
