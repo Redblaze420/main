@@ -24,6 +24,8 @@
 #include "applet.h"
 #include "board_capabilities.h"
 #include "bootutils.h"
+#include "button.h"
+#include "consumption_mask.h"
 #include "display.h"
 #include "dma2d.h"
 #include "entropy.h"
