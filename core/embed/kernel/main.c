@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "applet.h"
+#include "bl_check.h"
 #include "board_capabilities.h"
 #include "bootutils.h"
 #include "button.h"
@@ -117,7 +118,7 @@ void drivers_init() {
   entropy_init();
 
 #if PRODUCTION || BOOTLOADER_QA
-  // check_and_replace_bootloader();
+  check_and_replace_bootloader();
 #endif
 
 #ifdef USE_BUTTON

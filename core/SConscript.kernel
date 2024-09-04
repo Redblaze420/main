@@ -183,6 +183,7 @@ if FEATURE_FLAGS["AES_GCM"]:
     ]
 
 SOURCE_MOD += [
+    'embed/lib/bl_check.c',
 #    'embed/lib/buffers.c',
 #    'embed/lib/colors.c',
 #    'embed/lib/display_utils.c',
@@ -386,7 +387,7 @@ obj_program.extend(
         ' $SOURCE $TARGET', ))
 
 if TREZOR_MODEL not in ('DISC1', 'DISC2'):
-    tools.embed_binary(
+    tools.embed_compressed_binary(
             obj_program,
             env,
             'bootloader',
