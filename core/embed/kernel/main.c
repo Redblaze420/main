@@ -171,10 +171,13 @@ void drivers_init() {
 #endif
 }
 
+extern uint32_t _codelen;
+#define KERNEL_SIZE (uint32_t) & _codelen
+
 // Initializes coreapp applet
 static void coreapp_init(applet_t *applet) {
   applet_header_t *coreapp_header =
-      (applet_header_t *)(COREAPP_START + IMAGE_HEADER_SIZE + 0x0400);
+      (applet_header_t *)(KERNEL_START + KERNEL_SIZE);
 
   applet_layout_t coreapp_layout = {
       0

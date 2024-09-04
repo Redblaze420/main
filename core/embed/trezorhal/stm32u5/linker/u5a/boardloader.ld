@@ -1,16 +1,16 @@
-/* Trezor v2 bootloader linker script */
+INCLUDE "./embed/trezorhal/stm32u5/linker/u5a/memory.ld";
 
 ENTRY(reset_handler)
 
 MEMORY {
-  FLASH  (rx)  : ORIGIN = 0x0C010000, LENGTH = 128K
-  SRAM1  (wal) : ORIGIN = 0x30000000, LENGTH =  768K - 0x100
-  BOOT_ARGS  (wal) : ORIGIN = 0x300BFF00, LENGTH =  0x100
-  SRAM2  (wal) : ORIGIN = 0x300C0000, LENGTH =  64K
-  SRAM3  (wal) : ORIGIN = 0x300D0000, LENGTH =  832K
-  SRAM5  (wal) : ORIGIN = 0x301A0000, LENGTH =  832K
-  SRAM6  (wal) : ORIGIN = 0x30270000, LENGTH =  0
-  SRAM4  (wal) : ORIGIN = 0x38000000, LENGTH =  16K
+  FLASH  (rx)  : ORIGIN = BOARDLOADER_START, LENGTH = BOARDLOADER_IMAGE_MAXSIZE
+  SRAM1  (wal) : ORIGIN = MCU_SRAM1, LENGTH = MCU_SRAM1_SIZE - BOOTARGS_SIZE
+  BOOT_ARGS  (wal) : ORIGIN = MCU_SRAM2 - BOOTARGS_SIZE, LENGTH =  BOOTARGS_SIZE
+  SRAM2  (wal) : ORIGIN = MCU_SRAM2, LENGTH =  MCU_SRAM2_SIZE
+  SRAM3  (wal) : ORIGIN = MCU_SRAM3, LENGTH =  MCU_SRAM3_SIZE
+  SRAM5  (wal) : ORIGIN = MCU_SRAM5, LENGTH =  MCU_SRAM5_SIZE
+  SRAM6  (wal) : ORIGIN = MCU_SRAM5, LENGTH =  MCU_SRAM6_SIZE
+  SRAM4  (wal) : ORIGIN = MCU_SRAM4, LENGTH =  MCU_SRAM4_SIZE
 }
 
 main_stack_base = ORIGIN(SRAM2) + SIZEOF(.stack); /* 8-byte aligned full descending stack */
@@ -45,25 +45,24 @@ sram6_end = ORIGIN(SRAM6) + LENGTH(SRAM6);
 boot_args_start = ORIGIN(BOOT_ARGS);
 boot_args_end = ORIGIN(BOOT_ARGS) + LENGTH(BOOT_ARGS);
 
-_codelen = SIZEOF(.flash) + SIZEOF(.data) + SIZEOF(.confidential);
-
 SECTIONS {
-  .header : ALIGN(4) {
-    KEEP(*(.header));
+  .vector_table : ALIGN(CODE_ALIGNMENT) {
+    KEEP(*(.vector_table));
   } >FLASH AT>FLASH
 
-  .flash : ALIGN(1024) {
-    KEEP(*(.vector_table));
-    . = ALIGN(4);
+  .text : ALIGN(4) {
     *(.text*);
-    . = ALIGN(4);
+    . = ALIGN(4); /* make the section size a multiple of the word size */
+  } >FLASH AT>FLASH
+
+  .rodata : ALIGN(4) {
     *(.rodata*);
-    . = ALIGN(512);
+    . = ALIGN(4); /* make the section size a multiple of the word size */
   } >FLASH AT>FLASH
 
   .data : ALIGN(4) {
     *(.data*);
-    . = ALIGN(512);
+    . = ALIGN(8);
   } >SRAM1 AT>FLASH
 
   /DISCARD/ : {
@@ -78,17 +77,15 @@ SECTIONS {
   .buf : ALIGN(4) {
     *(.buf*);
     . = ALIGN(4);
-    *(.no_dma_buffers*);
-    . = ALIGN(4);
   } >SRAM1
 
   .stack : ALIGN(8) {
     . = 16K; /* Overflow causes UsageFault */
   } >SRAM2
 
-  .confidential : ALIGN(512) {
+  .confidential : ALIGN(8) {
     *(.confidential*);
-    . = ALIGN(512);
+    . = ALIGN(4);
   } >SRAM2 AT>FLASH
 
   .fb1 : ALIGN(4) {
@@ -111,4 +108,8 @@ SECTIONS {
     *(.boot_args*);
     . = ALIGN(8);
   } >BOOT_ARGS
+
+
+  /* Hard-coded address for capabilities structure */
+  .capabilities BOARD_CAPABILITIES_ADDR : {KEEP(*(.capabilities_section))}
 }

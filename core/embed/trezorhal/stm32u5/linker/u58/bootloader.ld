@@ -1,22 +1,21 @@
-/* TREZORv2 firmware linker script */
+INCLUDE "./embed/trezorhal/stm32u5/linker/u58/memory.ld";
 
 ENTRY(reset_handler)
 
 MEMORY {
-  FLASH  (rx)  : ORIGIN = 0x0C050000 + 0x28000, LENGTH = 1664K - 0x28000
-  SRAM1  (wal) : ORIGIN = 0x30000000, LENGTH =  192K - 16K
-  BOOT_ARGS  (wal) : ORIGIN = 0x3002FF00, LENGTH =  0x100
-  SRAM2  (wal) : ORIGIN = 0x30030000 + 8K, LENGTH =  64K - 8K
-  SRAM3  (wal) : ORIGIN = 0x30040000 + 0x38400, LENGTH =  512K - 0x38400
-  SRAM5  (wal) : ORIGIN = 0x30080000, LENGTH =  0K  /* SRAM5 is not available */
-  SRAM6  (wal) : ORIGIN = 0x30080000, LENGTH =  0K  /* SRAM6 is not available */
-  SRAM4  (wal) : ORIGIN = 0x38000000, LENGTH =  16K
+  FLASH  (rx)  : ORIGIN = BOOTLOADER_START, LENGTH = BOOTLOADER_IMAGE_MAXSIZE
+  SRAM1  (wal) : ORIGIN = MCU_SRAM1, LENGTH =  MCU_SRAM1_SIZE - BOOTARGS_SIZE
+  BOOT_ARGS  (wal) : ORIGIN = MCU_SRAM2 - BOOTARGS_SIZE, LENGTH =  BOOTARGS_SIZE
+  SRAM2  (wal) : ORIGIN = MCU_SRAM2, LENGTH =  MCU_SRAM2_SIZE
+  SRAM3  (wal) : ORIGIN = MCU_SRAM3, LENGTH =  MCU_SRAM3_SIZE
+  SRAM5  (wal) : ORIGIN = MCU_SRAM5, LENGTH =  MCU_SRAM5_SIZE
+  SRAM6  (wal) : ORIGIN = MCU_SRAM6, LENGTH =  MCU_SRAM6_SIZE
+  SRAM4  (wal) : ORIGIN = MCU_SRAM4, LENGTH =  MCU_SRAM4_SIZE
 }
 
 main_stack_base = ORIGIN(SRAM2) + SIZEOF(.stack); /* 8-byte aligned full descending stack */
 _sstack = ORIGIN(SRAM2);
 _estack = main_stack_base;
-_stack_size = SIZEOF(.stack);
 
 /* used by the startup code to populate variables used by the C code */
 data_lma = LOADADDR(.data);
@@ -49,21 +48,13 @@ boot_args_start = ORIGIN(BOOT_ARGS);
 boot_args_end = ORIGIN(BOOT_ARGS) + LENGTH(BOOT_ARGS);
 
 _codelen = SIZEOF(.flash) + SIZEOF(.data) + SIZEOF(.confidential);
-_flash_start = ORIGIN(FLASH);
-_flash_end = ORIGIN(FLASH) + LENGTH(FLASH);
-_heap_start = ADDR(.heap);
-_heap_end = ADDR(.heap) + SIZEOF(.heap);
 
 SECTIONS {
-  .vendorheader : ALIGN(4) {
-    KEEP(*(.vendorheader))
-  } >FLASH AT>FLASH
-
   .header : ALIGN(4) {
     KEEP(*(.header));
   } >FLASH AT>FLASH
 
-  .flash : ALIGN(512) {
+  .flash : ALIGN(CODE_ALIGNMENT) {
     KEEP(*(.vector_table));
     . = ALIGN(4);
     *(.text*);
@@ -82,13 +73,19 @@ SECTIONS {
   }
 
   .bss : ALIGN(4) {
-    *(.no_dma_buffers*);
     *(.bss*);
     . = ALIGN(4);
   } >SRAM1
 
+  .buf : ALIGN(4) {
+    *(.buf*);
+    . = ALIGN(4);
+    *(.no_dma_buffers*);
+    . = ALIGN(4);
+  } >SRAM1
+
   .stack : ALIGN(8) {
-    . = 32K; /* Overflow causes UsageFault */
+    . = 16K; /* Overflow causes UsageFault */
   } >SRAM2
 
   .confidential : ALIGN(512) {
@@ -96,14 +93,13 @@ SECTIONS {
     . = ALIGN(512);
   } >SRAM2 AT>FLASH
 
-  .buf : ALIGN(4) {
-    *(.buf*);
+  .fb : ALIGN(4) {
+   __fb_start = .;
+    *(.fb1*);
+    *(.fb2*);
+    *(.framebuffer_select*);
+   __fb_end = .;
     . = ALIGN(4);
-  } >SRAM3
-
-  .heap : ALIGN(4) {
-    . = 37K; /* this acts as a build time assertion that at least this much memory is available for heap use */
-    . = ABSOLUTE(sram3_end); /* this explicitly sets the end of the heap */
   } >SRAM3
 
   .boot_args : ALIGN(8) {

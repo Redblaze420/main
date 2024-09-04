@@ -1,16 +1,16 @@
-/* Trezor v2 boardloader linker script */
+INCLUDE "./embed/trezorhal/stm32u5/linker/u58/memory.ld";
 
 ENTRY(reset_handler)
 
 MEMORY {
-  FLASH  (rx)  : ORIGIN = 0x0C004000, LENGTH = 48K
-  SRAM1  (wal) : ORIGIN = 0x30000000, LENGTH =  192K - 0x100
-  BOOT_ARGS  (wal) : ORIGIN = 0x3002FF00, LENGTH =  0x100
-  SRAM2  (wal) : ORIGIN = 0x30030000, LENGTH =  64K
-  SRAM3  (wal) : ORIGIN = 0x30040000, LENGTH =  512K
-  SRAM5  (wal) : ORIGIN = 0x30080000, LENGTH =  0K  /* SRAM5 is not available */
-  SRAM6  (wal) : ORIGIN = 0x30080000, LENGTH =  0K  /* SRAM6 is not available */
-  SRAM4  (wal) : ORIGIN = 0x38000000, LENGTH =  16K
+  FLASH  (rx)  : ORIGIN = BOARDLOADER_START, LENGTH = BOARDLOADER_IMAGE_MAXSIZE
+  SRAM1  (wal) : ORIGIN = MCU_SRAM1, LENGTH = MCU_SRAM1_SIZE - BOOTARGS_SIZE
+  BOOT_ARGS  (wal) : ORIGIN = MCU_SRAM2 - BOOTARGS_SIZE, LENGTH =  BOOTARGS_SIZE
+  SRAM2  (wal) : ORIGIN = MCU_SRAM2, LENGTH =  MCU_SRAM2_SIZE
+  SRAM3  (wal) : ORIGIN = MCU_SRAM3, LENGTH =  MCU_SRAM3_SIZE
+  SRAM5  (wal) : ORIGIN = MCU_SRAM5, LENGTH =  MCU_SRAM5_SIZE
+  SRAM6  (wal) : ORIGIN = MCU_SRAM5, LENGTH =  MCU_SRAM6_SIZE
+  SRAM4  (wal) : ORIGIN = MCU_SRAM4, LENGTH =  MCU_SRAM4_SIZE
 }
 
 main_stack_base = ORIGIN(SRAM2) + SIZEOF(.stack); /* 8-byte aligned full descending stack */
@@ -48,7 +48,7 @@ boot_args_start = ORIGIN(BOOT_ARGS);
 boot_args_end = ORIGIN(BOOT_ARGS) + LENGTH(BOOT_ARGS);
 
 SECTIONS {
-  .vector_table : ALIGN(512) {
+  .vector_table : ALIGN(CODE_ALIGNMENT) {
     KEEP(*(.vector_table));
   } >FLASH AT>FLASH
 
@@ -108,5 +108,5 @@ SECTIONS {
 
 
   /* Hard-coded address for capabilities structure */
-  .capabilities 0x0C00FF00 : {KEEP(*(.capabilities_section))}
+  .capabilities BOARD_CAPABILITIES_ADDR : {KEEP(*(.capabilities_section))}
 }
