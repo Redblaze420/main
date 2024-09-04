@@ -1,15 +1,15 @@
-/* TREZORv2 firmware linker script */
+INCLUDE "./embed/trezorhal/stm32f4/linker/memory.ld";
 
 ENTRY(reset_handler)
 
 MEMORY {
-  FLASH  (rx)     : ORIGIN = 0x08040000, LENGTH = 768K
-  CCMRAM (wal)    : ORIGIN = 0x10000000, LENGTH = 64K - 0x100
-  BOOT_ARGS (wal) : ORIGIN = 0x1000FF00, LENGTH = 0x100
-  SRAM   (wal)    : ORIGIN = 0x20000000, LENGTH = 192K
+  FLASH  (rx)     : ORIGIN = KERNEL_START, LENGTH = KERNEL_IMAGE_MAXSIZE
+  CCMRAM (wal)    : ORIGIN = MCU_CCMRAM, LENGTH = MCU_CCMRAM_SIZE - BOOTARGS_SIZE
+  BOOT_ARGS (wal) : ORIGIN = MCU_CCMRAM + MCU_CCMRAM_SIZE - BOOTARGS_SIZE, LENGTH = BOOTARGS_SIZE
+  SRAM   (wal)    : ORIGIN = MCU_SRAM, LENGTH = MCU_SRAM_SIZE
 }
 
-main_stack_base = ORIGIN(SRAM) + LENGTH(SRAM); /* 8-byte aligned full descending stack */
+main_stack_base = ORIGIN(SRAM) + SIZEOF(.stack); /* 8-byte aligned full descending stack */
 _sstack = ORIGIN(SRAM);
 _estack = main_stack_base;
 
@@ -17,6 +17,8 @@ _estack = main_stack_base;
 data_lma = LOADADDR(.data);
 data_vma = ADDR(.data);
 data_size = SIZEOF(.data);
+bss_start = ADDR(.bss);
+bss_end = ADDR(.bss) + SIZEOF(.bss);
 
 /* used by the startup code to wipe memory */
 ccmram_start = ORIGIN(CCMRAM);
@@ -32,11 +34,9 @@ sram_end = ORIGIN(SRAM) + LENGTH(SRAM);
 _ram_start = sram_start;
 _ram_end = sram_end;
 
-_codelen = SIZEOF(.flash) + SIZEOF(.data);
+_codelen = LENGTH(FLASH) - SIZEOF(.vendorheader) - SIZEOF(.header);
 _flash_start = ORIGIN(FLASH);
 _flash_end = ORIGIN(FLASH) + LENGTH(FLASH);
-_heap_start = ADDR(.heap);
-_heap_end = ADDR(.heap) + SIZEOF(.heap);
 
 SECTIONS {
   .vendorheader : ALIGN(4) {
@@ -44,21 +44,25 @@ SECTIONS {
   } >FLASH AT>FLASH
 
   .header : ALIGN(4) {
-    KEEP(*(.header));
+    . = 1K;
+    . = ALIGN(CODE_ALIGNMENT);
   } >FLASH AT>FLASH
 
-  .flash : ALIGN(512) {
+  .flash : ALIGN(CODE_ALIGNMENT) {
     KEEP(*(.vector_table));
     . = ALIGN(4);
     *(.text*);
     . = ALIGN(4);
     *(.rodata*);
-    . = ALIGN(128K);
-  } >FLASH
+    . = ALIGN(4);
+    KEEP(*(.bootloader));
+    *(.bootloader*);
+    . = ALIGN(512);
+  } >FLASH AT>FLASH
 
-  /DISCARD/ : {
-    *(.ARM.exidx*);
-  }
+  .stack : ALIGN(8) {
+    . = 16K; /* Exactly 16K allocated for stack. Overflow causes MemManage fault (when using MPU). */
+  } >SRAM
 
   .data : ALIGN(4) {
     *(.data*);
@@ -70,13 +74,9 @@ SECTIONS {
     . = ALIGN(4);
   } >SRAM
 
-  .heap : ALIGN(4) {
-    . = 37K; /* this acts as a build time assertion that at least this much memory is available for heap use */
-    . = ABSOLUTE(sram_end - 16K); /* this explicitly sets the end of the heap effectively giving the stack at most 16K */
-  } >SRAM
-
-  .stack : ALIGN(8) {
-    . = 4K; /* this acts as a build time assertion that at least this much memory is available for stack use */
+  .buf : ALIGN(4) {
+    *(.buf*);
+    . = ALIGN(4);
   } >SRAM
 
   .boot_args : ALIGN(8) {
