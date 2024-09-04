@@ -16,6 +16,7 @@ MEMORY {
 main_stack_base = ORIGIN(SRAM2) + SIZEOF(.stack); /* 8-byte aligned full descending stack */
 _sstack = ORIGIN(SRAM2);
 _estack = main_stack_base;
+_stack_size = SIZEOF(.stack);
 
 /* used by the startup code to populate variables used by the C code */
 data_lma = LOADADDR(.data);

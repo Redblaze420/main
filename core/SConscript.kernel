@@ -422,21 +422,10 @@ BINARY_NAME += "-" + tools.get_git_revision_short_hash()
 BINARY_NAME += "-dirty" if tools.get_git_modified() else ""
 BINARY_NAME += ".bin"
 
-if 'STM32F427xx' in CPPDEFINES_HAL or 'STM32F429xx' in CPPDEFINES_HAL:
-    action_bin=[
-        '$OBJCOPY -O binary -j -j .flash -j .uflash -j .data -j .confidential --pad-to 0x08100000 $SOURCE ${TARGET}.p1',
-        '$OBJCOPY -O binary -j .flash2 $SOURCE ${TARGET}.p2',
-        '$CAT ${TARGET}.p1 ${TARGET}.p2 > $TARGET',
-        '$DD if=$TARGET of=${TARGET}.p1 skip=0 bs=128k count=6',
-        '$CP $TARGET ' + BINARY_NAME,
-    ]
-elif 'STM32U5A9xx' in CPPDEFINES_HAL or 'STM32U585xx' in CPPDEFINES_HAL:
-    action_bin=[
-        '$OBJCOPY -O binary -j .flash -j .uflash  -j .data -j .confidential $SOURCE ${TARGET}',
-        '$CP $TARGET ' + BINARY_NAME,
-        ]
-else:
-    raise Exception("Unknown MCU")
+action_bin=[
+    '$OBJCOPY -O binary -j .flash -j .uflash  -j .data -j .confidential $SOURCE ${TARGET}',
+    '$CP $TARGET ' + BINARY_NAME,
+]
 
 program_bin = env.Command(
     target='kernel.bin',
