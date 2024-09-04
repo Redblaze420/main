@@ -90,4 +90,56 @@ __attribute__((naked, no_stack_protector)) void return_from_app_callback(
       "BX     LR              \n");
 }
 
+
+__attribute__((naked, no_stack_protector)) static uint32_t _invoke_unpriv(
+    uint32_t stack_addr, void *callback) {
+  __asm__ volatile(
+      "push {r1-r12, lr}      \n"
+
+      "mrs r12, PSP           \n"  // backup unprivileged stack
+      "push {r12}             \n"
+      "mov r12, r0            \n"  // setup stack for unprivileged call inside
+                                   // kernel
+      "sub r12, r12, #32      \n"
+      "msr PSP, r12           \n"
+
+      "mov r3, #0             \n"
+      "str r3, [r12, #0]      \n"  // r0
+      "str r3, [r12, #4]      \n"  // r1"
+      "str r3, [r12, #8]      \n"  // r2"
+      "str r3, [r12, #12]     \n"  // r3"
+      "str r3, [r12, #16]     \n"  // r12"
+      "str r3, [r12, #20]     \n"  // lr"
+
+      "bic r3, r1, #1         \n"
+      "str r3, [r12, #24]     \n"  // return address
+
+      "ldr r1, = 0x01000000   \n"
+      "str r1, [r12, #28]     \n"  // xPSR
+
+      "ldr r1, = 0xE000EF34   \n"  // FPU->FPPCCR
+      "ldr r0, [r1]           \n"
+      "bic r0, r0, #1         \n"  // Clear LSPACT to suppress lazy stacking to
+      "str r0, [r1]           \n"  // avoid potential PSP stack overwrite.
+
+      "mrs r1, CONTROL        \n"
+      "bic r1, r1, #4         \n"  // Clear FPCA to suppress lazy stacking to
+      "msr CONTROL, r1        \n"  // avoid potential PSP stack overwrite.
+
+      // return to Secure Thread mode (use Secure PSP)
+      "ldr lr, = 0xFFFFFFFD   \n"
+      "bx lr                  \n");
+}
+
+extern const void _eustack;
+
+uint32_t invoke_unpriv(void *func) {
+  uint32_t *stack = (uint32_t *)&_eustack;
+
+  uint32_t retval = _invoke_unpriv((uint32_t)stack, func);
+  return retval;
+}
+
+
+
 #endif  // SYSCALL_DISPATCH
