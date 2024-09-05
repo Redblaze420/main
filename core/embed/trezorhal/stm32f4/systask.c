@@ -341,6 +341,7 @@ __attribute__((no_stack_protector, used)) static uint32_t svc_handler(
       // g_return_value = args[0]
       // exc_return = return_from_callback;
 
+      mpu_restore(mpu_mode);
       return_from_app_callback(args[0], msp);
       break;
 #endif
