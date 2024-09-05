@@ -31,7 +31,12 @@
 #ifdef KERNEL_MODE
 
 #define RSOD_FG_COLOR COLOR_WHITE
+
+#ifdef USE_RGB_COLORS
 #define RSOD_BG_COLOR RGB16(0x7F, 0x00, 0x00)
+#else
+#define RSOD_BG_COLOR COLOR_BLACK
+#endif
 
 void rsod_terminal(const systask_postmortem_t* info) {
   display_orientation(0);
