@@ -32,7 +32,7 @@ PRODUCTION ?= 0
 PYOPT      ?= 1
 BITCOIN_ONLY ?= 0
 BOOTLOADER_QA ?= 0
-BOOTLOADER_DEVEL ?= 0
+BOOTLOADER_DEVEL ?= 1
 TREZOR_MODEL ?= T
 TREZOR_MEMPERF ?= 0
 ADDRESS_SANITIZER ?= 0
@@ -40,6 +40,7 @@ CMAKELISTS ?= 0
 PYTEST_TIMEOUT ?= 500
 TEST_LANG ?= "en"
 THP ?= 0
+NEW_RENDERING ?= 1
 
 # OpenOCD interface default. Alternative: ftdi/olimex-arm-usb-tiny-h
 OPENOCD_INTERFACE ?= stlink
