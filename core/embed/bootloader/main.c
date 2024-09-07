@@ -338,7 +338,8 @@ void real_jump_to_firmware(void) {
   ensure_compatible_settings();
 #endif
 
-  mpu_config_off();
+  mpu_reconfig(MPU_MODE_DISABLED);
+
   jump_to(IMAGE_CODE_ALIGN(FIRMWARE_START + vhdr.hdrlen + IMAGE_HEADER_SIZE));
 }
 
@@ -397,8 +398,6 @@ int bootloader_main(void) {
 #endif
 
   ui_screen_boot_stage_1(false);
-
-  mpu_config_bootloader();
 
   fault_handlers_init();
 
