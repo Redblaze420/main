@@ -5,9 +5,8 @@ ENTRY(reset_handler)
 MEMORY {
   FLASH  (rx)     : ORIGIN = FIRMWARE_START, LENGTH = FIRMWARE_P1_IMAGE_MAXSIZE
   FLASH2 (r)      : ORIGIN = FIRMWARE_P2_START, LENGTH = FIRMWARE_P2_IMAGE_MAXSIZE
-  CCMRAM (wal)    : ORIGIN = MCU_CCMRAM, LENGTH = MCU_CCMRAM_SIZE - BOOTARGS_SIZE
-  BOOT_ARGS (wal) : ORIGIN = MCU_CCMRAM + MCU_CCMRAM_SIZE - BOOTARGS_SIZE, LENGTH = BOOTARGS_SIZE
-  SRAM   (wal)    : ORIGIN = MCU_SRAM, LENGTH = MCU_SRAM_SIZE
+  CCMRAM (wal)    : ORIGIN = MCU_CCMRAM, LENGTH = MCU_CCMRAM_SIZE - KERNEL_CCMRAM_SIZE
+  SRAM   (wal)    : ORIGIN = MCU_SRAM, LENGTH = MCU_SRAM_SIZE - KERNEL_SRAM_SIZE
 }
 
 main_stack_base = ORIGIN(SRAM) + SIZEOF(.stack); /* 8-byte aligned full descending stack */
@@ -23,10 +22,6 @@ data_size = SIZEOF(.data);
 /* used by the startup code to wipe memory */
 ccmram_start = ORIGIN(CCMRAM);
 ccmram_end = ORIGIN(CCMRAM) + LENGTH(CCMRAM);
-
-/* reserve 256 bytes for bootloader arguments */
-boot_args_start = ORIGIN(BOOT_ARGS);
-boot_args_end = ORIGIN(BOOT_ARGS) + LENGTH(BOOT_ARGS);
 
 /* used by the startup code to wipe memory */
 sram_start = ORIGIN(SRAM);
@@ -66,14 +61,14 @@ SECTIONS {
   } >FLASH2 AT>FLASH2
 
   .flash : ALIGN(512) {
+    KEEP(*(.kernel));
+    . = ALIGN(512);
     KEEP(*(.vector_table));
     . = ALIGN(4);
     *(.text*);
     . = ALIGN(4);
     *(.rodata*);
     . = ALIGN(4);
-    KEEP(*(.bootloader));
-    *(.bootloader*);
     . = ALIGN(512);
   } >FLASH AT>FLASH
 
@@ -106,8 +101,9 @@ SECTIONS {
     . = ALIGN(4);
   } >CCMRAM
 
-  .boot_args : ALIGN(8) {
-    *(.boot_args*);
-    . = ALIGN(8);
-  } >BOOT_ARGS
+
+  /DISCARD/ : {
+    *(.ARM.exidx*);
+  }
+
 }

@@ -4,7 +4,7 @@ ENTRY(reset_handler)
 
 MEMORY {
   FLASH  (rx)     : ORIGIN = KERNEL_START, LENGTH = KERNEL_IMAGE_MAXSIZE
-  CCMRAM (wal)    : ORIGIN = MCU_CCMRAM, LENGTH = MCU_CCMRAM_SIZE - BOOTARGS_SIZE
+  CCMRAM (wal)    : ORIGIN = MCU_CCMRAM + MCU_CCMRAM_SIZE - KERNEL_CCMRAM_SIZE - BOOTARGS_SIZE, LENGTH = KERNEL_CCMRAM_SIZE - BOOTARGS_SIZE
   BOOT_ARGS (wal) : ORIGIN = MCU_CCMRAM + MCU_CCMRAM_SIZE - BOOTARGS_SIZE, LENGTH = BOOTARGS_SIZE
   SRAM   (wal)    : ORIGIN = MCU_SRAM, LENGTH = MCU_SRAM_SIZE
 }
@@ -34,7 +34,7 @@ sram_end = ORIGIN(SRAM) + LENGTH(SRAM);
 _ram_start = sram_start;
 _ram_end = sram_end;
 
-_codelen = LENGTH(FLASH) - SIZEOF(.vendorheader) - SIZEOF(.header);
+_codelen = SIZEOF(.vendorheader) + SIZEOF(.header) + SIZEOF(.flash) + SIZEOF(.data) ;
 _flash_start = ORIGIN(FLASH);
 _flash_end = ORIGIN(FLASH) + LENGTH(FLASH);
 
@@ -83,4 +83,9 @@ SECTIONS {
     *(.boot_args*);
     . = ALIGN(8);
   } >BOOT_ARGS
+
+  /DISCARD/ : {
+    *(.ARM.exidx*);
+  }
+
 }
