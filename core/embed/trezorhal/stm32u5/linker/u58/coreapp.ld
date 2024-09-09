@@ -22,6 +22,8 @@ _stack_size = SIZEOF(.stack);
 data_lma = LOADADDR(.data);
 data_vma = ADDR(.data);
 data_size = SIZEOF(.data);
+bss_start = ADDR(.bss);
+bss_end = ADDR(.bss) + SIZEOF(.bss);
 
 /* used by the startup code to populate variables used by the C code */
 confidential_lma = LOADADDR(.confidential);
@@ -41,8 +43,6 @@ sram5_start = ORIGIN(SRAM5);
 sram5_end = ORIGIN(SRAM5) + LENGTH(SRAM5);
 sram6_start = ORIGIN(SRAM6);
 sram6_end = ORIGIN(SRAM6) + LENGTH(SRAM6);
-bss_start = ADDR(.bss);
-bss_end = ADDR(.bss) + SIZEOF(.bss);
 
 /* reserve 256 bytes for bootloader arguments */
 boot_args_start = ORIGIN(BOOT_ARGS);

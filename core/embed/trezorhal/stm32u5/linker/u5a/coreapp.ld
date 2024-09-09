@@ -21,7 +21,6 @@ _estack = main_stack_base;
 data_lma = LOADADDR(.data);
 data_vma = ADDR(.data);
 data_size = SIZEOF(.data);
-
 bss_start = ADDR(.bss);
 bss_end = ADDR(.bss) + SIZEOF(.bss);
 
