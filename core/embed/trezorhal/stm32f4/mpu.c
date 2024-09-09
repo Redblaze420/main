@@ -24,6 +24,7 @@
 #include <stdint.h>
 
 #include "irq.h"
+#include "model.h"
 #include "mpu.h"
 
 #include "stm32f4xx_ll_cortex.h"
@@ -353,10 +354,36 @@ static void mpu_init_fixed_regions(void) {
   // Regions #0 to #4 are fixed for all targets
 
 #ifdef BOARDLOADER
-  // TODO
+  // clang-format off
+  // Code in the Flash Bank #1 (Unprivileged, Read-Only, Executable)
+  // Subregion: 48KB = 64KB except 2/8 at end
+  SET_REGION( 0, BOARDLOADER_START,     SIZE_2MB,   0xC0, FLASH_CODE, PRIV_RO_URO );
+  DIS_REGION( 1 );
+  // All CCMRAM (Unprivileged, Read-Write, Non-Executable)
+  SET_REGION( 2, CCMDATARAM_BASE,       SIZE_64KB,  0x00, SRAM,       FULL_ACCESS );
+  // All SRAM (Unprivileged, Read-Write, Non-Executable)
+  // Subregion:  192KB = 256KB except 2/8 at end
+  SET_REGION( 3, SRAM_BASE,             SIZE_256KB, 0xC0, SRAM,       FULL_ACCESS );
+  // Kernel RAM (Privileged, Read-Write, Non-Executable)
+  // SET_REGION( 4, ...,                   SIZE_xxx,   0xXX, ATTR_SRAM,   PRIV_RW );
+  DIS_REGION( 4 );
+  // clang-format on
 #endif
 #ifdef BOOTLOADER
-  // TODO
+  // clang-format off
+  // Code in the Flash Bank #1 (Unprivileged, Read-Only, Executable)
+  // Subregion: 128KB = 1024KB except 2/8 at start
+  SET_REGION( 0, BOARDLOADER_START,      SIZE_2MB,   0x00, FLASH_CODE, PRIV_RO_URO );
+  DIS_REGION( 1 );
+  // All CCMRAM (Unprivileged, Read-Write, Non-Executable)
+  SET_REGION( 2, CCMDATARAM_BASE,       SIZE_64KB,  0x00, SRAM,       FULL_ACCESS );
+  // All SRAM (Unprivileged, Read-Write, Non-Executable)
+  // Subregion:  192KB = 256KB except 2/8 at end
+  SET_REGION( 3, SRAM_BASE,             SIZE_256KB, 0xC0, SRAM,       FULL_ACCESS );
+  // Kernel RAM (Privileged, Read-Write, Non-Executable)
+  // SET_REGION( 4, ...,                   SIZE_xxx,   0xXX, ATTR_SRAM,   PRIV_RW );
+  DIS_REGION( 4 );
+  // clang-format on
 #endif
 #ifdef KERNEL
   // clang-format off
@@ -476,6 +503,11 @@ mpu_mode_t mpu_reconfig(mpu_mode_t mode) {
       // FSMC Control Registers (Privileged, Read-Write, Non-Executable)
       // 0xA0000000 = FMSC_R_BASE (not defined in used headers)
       SET_REGION( 6, 0xA0000000,            SIZE_4KB,  0x00, FLASH_DATA, FULL_ACCESS );
+      break;
+
+    case MPU_MODE_FLASHOB:
+      SET_REGION( 5, 0x1FFFC000,            SIZE_1KB,  0x00, FLASH_DATA, PRIV_RO );
+      SET_REGION( 6, 0x1FFEC000,            SIZE_1KB,  0x00, FLASH_DATA, PRIV_RO );
       break;
 
     case MPU_MODE_SECRET:

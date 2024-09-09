@@ -36,6 +36,7 @@ typedef enum {
   MPU_MODE_BOOTUPDATE,  // + bootloader area (privileged RW)
   MPU_MODE_OTP,         // + OTP (privileged RW)
   MPU_MODE_FSMC_REGS,   // + FSMC control registers (privileged RW)
+  MPU_MODE_FLASHOB,     // + Option bytes mapping (privileged RW)
   MPU_MODE_SECRET,      // + secret area (priviledeg RW)
   MPU_MODE_STORAGE,     // + both storage areas (privilehed RW)
   MPU_MODE_ASSETS,      // + assets (privileged RW)
