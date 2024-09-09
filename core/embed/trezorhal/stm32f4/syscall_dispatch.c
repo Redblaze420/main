@@ -484,7 +484,6 @@ void syscall_handler(uint32_t *args, uint32_t syscall) {
     } break;
     case SYSCALL_TRANSLATIONS_ERASE: {
       translations_erase();
-    } break;
       mpu_reconfig(MPU_MODE_ASSETS);
       args[0] = translations_area_bytesize();
     } break;
