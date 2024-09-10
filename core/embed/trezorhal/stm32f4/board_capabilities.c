@@ -44,6 +44,7 @@ void parse_boardloader_capabilities() {
       (const uint8_t *)(BOARD_CAPABILITIES_ADDR + BOARD_CAPABILITIES_SIZE);
 
   if (memcmp(pos, CAPABILITIES_HEADER, 4) != 0) {
+    mpu_restore(mpu_mode);
     return;
   }
 
@@ -76,6 +77,7 @@ void parse_boardloader_capabilities() {
         memcpy(&boardloader_version, pos, length);
         break;
       case TAG_TERMINATOR:
+        mpu_restore(mpu_mode);
         return;
       default:
         break;
