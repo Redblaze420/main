@@ -6,7 +6,7 @@ MEMORY {
   FLASH  (rx)     : ORIGIN = KERNEL_START, LENGTH = KERNEL_IMAGE_MAXSIZE
   CCMRAM (wal)    : ORIGIN = MCU_CCMRAM + MCU_CCMRAM_SIZE - KERNEL_CCMRAM_SIZE - BOOTARGS_SIZE, LENGTH = KERNEL_CCMRAM_SIZE - BOOTARGS_SIZE
   BOOT_ARGS (wal) : ORIGIN = MCU_CCMRAM + MCU_CCMRAM_SIZE - BOOTARGS_SIZE, LENGTH = BOOTARGS_SIZE
-  SRAM   (wal)    : ORIGIN = MCU_SRAM, LENGTH = MCU_SRAM_SIZE
+  SRAM   (wal)    : ORIGIN = MCU_SRAM + KERNEL_SRAM_SIZE, LENGTH = KERNEL_SRAM_SIZE
 }
 
 main_stack_base = ORIGIN(SRAM) + SIZEOF(.stack); /* 8-byte aligned full descending stack */
@@ -61,8 +61,8 @@ SECTIONS {
   } >FLASH AT>FLASH
 
   .stack : ALIGN(8) {
-    . = 16K; /* Exactly 16K allocated for stack. Overflow causes MemManage fault (when using MPU). */
-  } >SRAM
+    . = 6K; /* Exactly 6k allocated for stack. Overflow causes MemManage fault (when using MPU). */
+  } >CCMRAM
 
   .data : ALIGN(4) {
     *(.data*);
