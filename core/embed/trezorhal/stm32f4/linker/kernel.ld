@@ -67,12 +67,12 @@ SECTIONS {
   .data : ALIGN(4) {
     *(.data*);
     . = ALIGN(512);
-  } >SRAM AT>FLASH
+  } >CCMRAM AT>FLASH
 
   .bss : ALIGN(4) {
     *(.bss*);
     . = ALIGN(4);
-  } >SRAM
+  } >CCMRAM
 
   .buf : ALIGN(4) {
     *(.buf*);
