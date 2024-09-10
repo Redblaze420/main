@@ -370,7 +370,12 @@ flash_prodtest: $(PRODTEST_BUILD_DIR)/prodtest.bin ## flash prodtest using OpenO
 	$(OPENOCD) -c "init; reset halt; flash write_image erase $< $(FIRMWARE_START); exit"
 
 flash_coreapp: $(COREAPP_BUILD_DIR)/coreapp.bin ## flash coreapp using OpenOCD
+ifeq ($(MCU),$(filter $(MCU),STM32F4))
+	$(OPENOCD) -c "init; reset halt; flash write_image erase $<.p1 $(FIRMWARE_START); flash write_image erase $<.p2 $(FIRMWARE_P2_START); exit"
+
+else
 	$(OPENOCD) -c "init; reset halt; flash write_image erase $< $(FIRMWARE_START); exit"
+endif
 
 flash_firmware: $(FIRMWARE_BUILD_DIR)/firmware.bin ## flash firmware using OpenOCD
 ifeq ($(MCU),$(filter $(MCU),STM32F4))
