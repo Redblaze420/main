@@ -510,17 +510,12 @@ mpu_mode_t mpu_reconfig(mpu_mode_t mode) {
       SET_REGION( 6, 0x1FFEC000,            SIZE_1KB,  0x00, FLASH_DATA, PRIV_RO );
       break;
 
+#ifdef USE_OPTIGA
+    // with optiga, we use the secret sector, and assets area is smaller
     case MPU_MODE_SECRET:
       DIS_REGION( 5 );
       // Secret sector in Bank #2 (Privileged, Read-Write, Non-Executable)
       SET_REGION( 6, FLASH_BASE + 0x100000, SIZE_16KB, 0x00, FLASH_DATA, PRIV_RW );
-      break;
-
-    case MPU_MODE_STORAGE:
-      // Storage in the Flash Bank #1 (Privileged, Read-Write, Non-Executable)
-      SET_REGION( 5, FLASH_BASE + 0x10000,  SIZE_64KB, 0x00, FLASH_DATA, PRIV_RW );
-      // Storage in the Flash Bank #2 (Privileged, Read-Write, Non-Executable)
-      SET_REGION( 6, FLASH_BASE + 0x110000, SIZE_64KB, 0x00, FLASH_DATA, PRIV_RW );
       break;
 
     case MPU_MODE_ASSETS:
@@ -535,6 +530,32 @@ mpu_mode_t mpu_reconfig(mpu_mode_t mode) {
       // Assets (Unprivileged, Read-Only, Non-Executable)
       SET_REGION( 6, FLASH_BASE + 0x108000, SIZE_32KB, 0x00, FLASH_DATA, PRIV_RO_URO );
       break;
+
+#else
+    // without optiga, we use additional sector for assets area
+    case MPU_MODE_ASSETS:
+      IS_REGION( 5 );
+      // Assets (Privileged, Read-Write, Non-Executable)
+      SET_REGION( 6, FLASH_BASE + 0x100000, SIZE_64KB, 0xC0, FLASH_DATA, PRIV_RW );
+      break;
+
+    case MPU_MODE_APP:
+      // Unused (maybe privileged kernel code in the future)
+      DIS_REGION( 5 );
+      // Assets (Unprivileged, Read-Only, Non-Executable)
+      SET_REGION( 6, FLASH_BASE + 0x100000, SIZE_64KB, 0xC0, FLASH_DATA, PRIV_RO_URO );
+      break;
+
+#endif
+
+    case MPU_MODE_STORAGE:
+      // Storage in the Flash Bank #1 (Privileged, Read-Write, Non-Executable)
+      SET_REGION( 5, FLASH_BASE + 0x10000,  SIZE_64KB, 0x00, FLASH_DATA, PRIV_RW );
+      // Storage in the Flash Bank #2 (Privileged, Read-Write, Non-Executable)
+      SET_REGION( 6, FLASH_BASE + 0x110000, SIZE_64KB, 0x00, FLASH_DATA, PRIV_RW );
+      break;
+
+
 
     case MPU_MODE_DEFAULT:
     default:
