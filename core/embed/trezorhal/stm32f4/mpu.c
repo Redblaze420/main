@@ -534,7 +534,7 @@ mpu_mode_t mpu_reconfig(mpu_mode_t mode) {
 #else
     // without optiga, we use additional sector for assets area
     case MPU_MODE_ASSETS:
-      IS_REGION( 5 );
+      DIS_REGION( 5 );
       // Assets (Privileged, Read-Write, Non-Executable)
       SET_REGION( 6, FLASH_BASE + 0x100000, SIZE_64KB, 0xC0, FLASH_DATA, PRIV_RW );
       break;
