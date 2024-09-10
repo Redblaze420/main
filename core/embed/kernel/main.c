@@ -180,7 +180,7 @@ extern uint32_t _codelen;
 // Initializes coreapp applet
 static void coreapp_init(applet_t *applet) {
   applet_header_t *coreapp_header =
-      (applet_header_t *)(KERNEL_START + KERNEL_SIZE);
+      (applet_header_t *)COREAPP_CODE_ALIGN(KERNEL_START + KERNEL_SIZE);
 
   applet_layout_t coreapp_layout = {
       0
