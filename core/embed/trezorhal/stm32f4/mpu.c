@@ -552,9 +552,11 @@ mpu_mode_t mpu_reconfig(mpu_mode_t mode) {
       // Dma2D (Unprivileged, Read-Write, Non-Executable)
       // 3KB = 4KB except 1/4 at end
       SET_REGION( 7, 0x4002B000,            SIZE_4KB,  0xC0, PERIPH,     FULL_ACCESS );
+      break;
     default:
       // All Peripherals (Privileged, Read-Write, Non-Executable)
       SET_REGION( 7, PERIPH_BASE,           SIZE_1GB,  0x00, PERIPH,     PRIV_RW );
+      break;
   }
   // clang-format on
 
