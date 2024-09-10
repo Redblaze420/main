@@ -99,6 +99,11 @@ void systick_update_freq(void) {
   drv->cycles_per_ms = clock_freq / 1000;
   drv->cycles_per_us = drv->cycles_per_ms / 1000;
   SysTick_Config(drv->cycles_per_ms);
+
+  // We need to ensure that SysTick has the expected priority.
+  // The SysTick priority is configured in the boardloader,
+  // and some early versions didn't set this properly.
+  NVIC_SetPriority(SysTick_IRQn, IRQ_PRI_NORMAL);
 }
 
 uint64_t systick_cycles(void) {
